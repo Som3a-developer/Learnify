@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "22079041338",
+    "project_id": "learnify-4f9ab",
+    "storage_bucket": "learnify-4f9ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:22079041338:android:9c7486e0e2e760f866ea03",
+        "android_client_info": {
+          "package_name": "com.som3adevelopments.learnify"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "22079041338-ii2j5cbc2vb4rl9prtch0vgaandvrki1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.som3adevelopments.learnify",
+            "certificate_hash": "7276e9620b1a4f767f9938b6c6108a3e504bfc40"
+          }
+        },
+        {
+          "client_id": "22079041338-p0j08dcpnr76pp0ogqj90fn74fc02sbn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIN81WyyAEQJ2iryB05Sjn6--oJ81og6o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "22079041338-p0j08dcpnr76pp0ogqj90fn74fc02sbn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
