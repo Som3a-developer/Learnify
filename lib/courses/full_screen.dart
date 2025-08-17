@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'package:screen_protector/screen_protector.dart';
 
 class FullScreenYoutubePlayer extends StatefulWidget {
-  final String videoId;
-
-  const FullScreenYoutubePlayer({required this.videoId});
+  final String url;
+  const FullScreenYoutubePlayer({Key? key, required this.url})
+      : super(key: key);
 
   @override
   State<FullScreenYoutubePlayer> createState() =>
@@ -14,25 +12,21 @@ class FullScreenYoutubePlayer extends StatefulWidget {
 }
 
 class _FullScreenYoutubePlayerState extends State<FullScreenYoutubePlayer> {
-  late YoutubePlayerController _controller;
-  Future<void> _secureScreen() async {
-    await ScreenProtector.preventScreenshotOn();
-  }
+  late YoutubePlayerController _ytController;
 
   @override
   void initState() {
     super.initState();
-    _secureScreen();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
 
-    _controller = YoutubePlayerController(
-      initialVideoId: YoutubePlayer.convertUrlToId(widget.videoId)!,
-      flags: YoutubePlayerFlags(
+    // استخراج videoId من الرابط
+    final videoId = YoutubePlayer.convertUrlToId(widget.url) ?? '';
+
+    _ytController = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
         autoPlay: true,
+        mute: false,
+        controlsVisibleAtStart: true,
         forceHD: true,
       ),
     );
@@ -40,21 +34,25 @@ class _FullScreenYoutubePlayerState extends State<FullScreenYoutubePlayer> {
 
   @override
   void dispose() {
-    _controller.dispose();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _ytController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: YoutubePlayer(
-        controller: _controller,
-        showVideoProgressIndicator: true,
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: YoutubePlayer(
+            controller: _ytController,
+            showVideoProgressIndicator: true,
+          ),
+        ),
       ),
     );
   }

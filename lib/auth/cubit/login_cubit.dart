@@ -1,4 +1,6 @@
 import 'package:bloc/bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:learnify/Helpers/dio_helper.dart';
 import 'package:learnify/Helpers/hive_helper.dart';
 import 'package:learnify/auth/login_screen.dart';
 import 'package:learnify/firebase/firebase_auth.dart';
@@ -47,7 +49,14 @@ class LoginCubit extends Cubit<LoginState> {
         phone: phone,
       );
       await HiveHelper.setUser(name: name, phone: phone);
-      HiveHelper.clearToken();
+      DioHelper.postData(path: "users", body: {
+        "user_id": HiveHelper.getToken(),
+        "phone": phone,
+        "user_name": name,
+        "email": HiveHelper.getUserEmail(),
+        "last_login": DateTime.now().toString()
+      });
+
       Get.offAll(() => LoginScreen());
       emit(LoginInitial());
     } else {
@@ -71,7 +80,6 @@ class LoginCubit extends Cubit<LoginState> {
         dispose(email, password);
         emit(SigninSuccess());
       } catch (e) {
-        print(e);
         emit(LoginFailure(e.toString()));
       }
     } else {
@@ -83,7 +91,6 @@ class LoginCubit extends Cubit<LoginState> {
     emit(LoginLoading());
     try {
       await FirebaseAuthHelper.signInWithGoogle();
-
       emit(LoginSuccess());
     } catch (e) {
       emit(LoginFailure(e.toString()));

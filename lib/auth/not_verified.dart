@@ -63,8 +63,6 @@ class _NotVerifiedScreenState extends State<NotVerifiedScreen> {
                 // Logic to resend verification email
                 // This should call a method from FirebaseAuthHelper to resend the email
                 FirebaseAuthHelper.resendVerificationEmail();
-                //print user cardentials
-                print(FirebaseAuth.instance.currentUser!.email);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Verification email sent!")),
                 );

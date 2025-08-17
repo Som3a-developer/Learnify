@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide ContextExtensionss;
 import 'package:learnify/const.dart';
 import 'package:learnify/extentions.dart';
-import 'package:learnify/firebase/firestore.dart';
 import 'package:learnify/widgets/custom_textfield.dart';
 import 'package:learnify/widgets/texts.dart';
 
@@ -60,12 +59,12 @@ class AddCoursesScreen extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Firestore().addCategory(
-                    category: categoryController.text,
-                    price: priceController.text,
-                    title: titleController.text,
-                    url: urlController.text,
-                  );
+                  // Firestore().addCategory(
+                  //   category: categoryController.text,
+                  //   price: priceController.text,
+                  //   title: titleController.text,
+                  //   url: urlController.text,
+                  // );
                   clear();
                   Get.snackbar("Success", "Course Added Successfully");
                 },

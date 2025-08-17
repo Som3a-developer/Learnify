@@ -17,7 +17,7 @@ class _HomeState extends State<Home> {
   int _selectedIndex = 0;
   List<Widget> tabItems = [
     HomeScreen(),
-    PopularCourses(categories: []),
+    PopularCourses(courses: [],categories: [],),
     AddCoursesScreen(),
     FillProfile()
   ];

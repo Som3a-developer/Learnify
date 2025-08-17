@@ -1,21 +1,26 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart' hide ContextExtensionss;
 import 'package:learnify/Helpers/hive_helper.dart';
 import 'package:learnify/const.dart';
+import 'package:learnify/courses/cubit/courses_cubit.dart';
 import 'package:learnify/courses/full_screen.dart';
 import 'package:learnify/extentions.dart';
+import 'package:learnify/firebase/firebase_auth.dart';
+import 'package:learnify/home/models/courses_model.dart';
 import 'package:learnify/widgets/texts.dart';
 
 class CourseDetails extends StatelessWidget {
   const CourseDetails({super.key, required this.course});
-  final Map<String, dynamic> course;
+
+  final CoursesModel course;
 
   @override
   Widget build(BuildContext context) {
     final height = context.height;
     final width = context.width;
-
+    final cubit = context.read<CoursesCubit>();
     return Scaffold(
       body: Stack(
         clipBehavior: Clip.none,
@@ -73,7 +78,7 @@ class CourseDetails extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              course["category"] ?? "",
+                              course.category ?? "",
                               style: TextStyle(
                                 color: Colors.orange,
                                 fontSize: width * 0.03,
@@ -84,7 +89,7 @@ class CourseDetails extends StatelessWidget {
                             ),
                             SizedBox(height: height * 0.005),
                             Text(
-                              course["title"] ?? "",
+                              course.title ?? "",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: width * 0.045,
@@ -104,7 +109,7 @@ class CourseDetails extends StatelessWidget {
                             Padding(
                               padding: EdgeInsets.only(left: width * 0.02),
                               child: Text(
-                                course["description"] ?? "",
+                                course.description ?? "",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w400,
                                   fontSize: width * 0.04,
@@ -120,9 +125,9 @@ class CourseDetails extends StatelessWidget {
                         right: 0,
                         child: GestureDetector(
                           onTap: () {
-                            if (HiveHelper.isEnrolled(course["id"])) {
+                            if (HiveHelper.isEnrolled(course.courseId ?? 1)) {
                               Get.to(FullScreenYoutubePlayer(
-                                videoId: course["url"],
+                                url: course.url ?? "",
                               ));
                             } else {
                               Get.snackbar("Not Enrolled",
@@ -153,14 +158,14 @@ class CourseDetails extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            course["publisher"] ?? "",
+                            course.publisher ?? "",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: width * 0.04,
                             ),
                           ),
                           Text(
-                            course["category"] ?? "",
+                            course.category ?? "",
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: width * 0.03,
@@ -176,30 +181,42 @@ class CourseDetails extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: height * 0.04),
-                  HiveHelper.isEnrolled(course["id"])
-                      ? Container(
-                          alignment: Alignment.center,
-                          height: height * 0.07,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(width * 0.04),
-                          ),
-                          child: Text(
-                            "Enrolled",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: width * 0.04,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      : GestureDetector(
-                          onTap: () {
-                            HiveHelper.setEnrolledCourses(
-                                enrolledcourse: course["id"]);
-                          },
-                          child: signButton(h: height, text: "Enroll Now")),
+                  BlocBuilder<CoursesCubit, CoursesState>(
+                    builder: (context, state) {
+                      return cubit.isEnrolled(
+                        courseId: course.courseId ?? -1,
+                      )
+                          ? Container(
+                              alignment: Alignment.center,
+                              height: height * 0.07,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius:
+                                    BorderRadius.circular(width * 0.04),
+                              ),
+                              child: Text(
+                                "Enrolled",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: width * 0.04,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : GestureDetector(
+                              onTap: () {
+                                cubit.setEnrolled(
+                                    userId: HiveHelper.getToken()!,
+                                    courseId: course.courseId ?? 1);
+                                Get.snackbar(
+                                  "Enrolled",
+                                  "You have enrolled in this course",
+                                );
+                              },
+                              child: signButton(h: height, text: "Enroll Now"));
+                    },
+                  )
                 ],
               ),
             ),

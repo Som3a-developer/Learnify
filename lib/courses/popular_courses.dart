@@ -1,21 +1,29 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:learnify/Helpers/hive_helper.dart';
 import 'package:learnify/courses/categories.dart';
+import 'package:learnify/courses/course_details.dart';
+import 'package:learnify/courses/cubit/courses_cubit.dart';
 import 'package:learnify/home/cubit/home_cubit.dart';
+import 'package:learnify/home/models/courses_model.dart';
 import 'package:learnify/widgets/texts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class PopularCourses extends StatelessWidget {
-  PopularCourses({required this.categories, super.key});
+  const PopularCourses(
+      {required this.categories, required this.courses, super.key});
+
+  final List<CoursesModel> courses;
 
   final List categories;
+
   @override
   Widget build(BuildContext context) {
     final w = context.width;
     final h = context.height;
-    final cubit = context.read<HomeCubit>();
-    final courses = cubit.allCourses;
+    final cubit = context.read<CoursesCubit>();
 
+    final courseList = courses;
     final filters = ['All', 'Graphic Design', '3D Design', 'Arts & Humanities'];
 
     return Scaffold(
@@ -81,31 +89,38 @@ class PopularCourses extends StatelessWidget {
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: courses!.length,
+                itemCount: courseList!.length,
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final data = courses[index];
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          height: 64,
-                          width: 64,
-                          color: Colors.black,
+                  final data = courseList[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Get.to(
+                        CourseDetails(
+                          course: data,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            height: 64,
+                            width: 64,
+                            color: Colors.black,
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                data['category'] ?? '',
+                                data.category ?? '',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.orange,
@@ -113,7 +128,7 @@ class PopularCourses extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                data['title'] ?? '',
+                                data.title ?? '',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -122,7 +137,7 @@ class PopularCourses extends StatelessWidget {
                               Row(
                                 children: [
                                   Text(
-                                    data['price'] ?? '',
+                                    "${data.points}" ?? '',
                                     style: const TextStyle(color: Colors.blue),
                                   ),
                                   const SizedBox(width: 6),
@@ -158,9 +173,40 @@ class PopularCourses extends StatelessWidget {
                               ),
                             ],
                           ),
-                        ),
-                        const Icon(Icons.bookmark_border),
-                      ],
+                          Spacer(),
+                          BlocBuilder<CoursesCubit, CoursesState>(
+                            builder: (context, state) {
+
+                              return GestureDetector(
+                                onTap: () {
+                                  try {
+                                    if (!HiveHelper.isSaved(data.courseId!)) {
+                                      if (data.courseId! >= 0) {
+                                        cubit.saveCourse(data.courseId!);
+                                      }
+                                    }else{
+                                    cubit.unSaveCourse(data.courseId!);
+                                    }
+                                  } catch (e) {
+                                  Get.snackbar("title", "couldn't Save");
+                                  }
+                                },
+                                child:HiveHelper.isSaved(data.courseId!)? Icon(
+                                        size: w * .09,
+                                        Icons.bookmark,
+                                        color: Colors.amberAccent,
+                                      )
+                                    :
+                                Icon(
+                                  size: w*.09,
+                                  Icons.bookmark_border_sharp,
+                                  color:Colors.black,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

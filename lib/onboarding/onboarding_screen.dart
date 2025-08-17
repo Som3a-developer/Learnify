@@ -24,7 +24,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       Get.offAll(() => SignUpScreen());
       HiveHelper.setValueInOnboardingBox();
-      print("Navigating to the next screen");
     }
   }
 
