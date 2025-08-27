@@ -22,26 +22,16 @@ class HomeScreen extends StatelessWidget {
     final height = size.height;
     final cubit = context.read<HomeCubit>();
 
-    final List<String> categories = cubit.allCategories.isEmpty
-        ? HiveHelper.getCategories().isNotEmpty
-            ? HiveHelper.getCategories()
-            : []
-        : cubit.allCategories;
-    final List<String> publishers = cubit.allPublishers.isEmpty
-        ? HiveHelper.getPublishers().isNotEmpty
-            ? HiveHelper.getPublishers()
-            : []
-        : cubit.allPublishers;
-    final List<CoursesModel> courses = cubit.model.isEmpty
-        ? HiveHelper.getCourses().isNotEmpty
-            ? HiveHelper.getCourses()
-                .map((e) => CoursesModel.fromJson(e))
-                .toList()
-            : []
-        : cubit.model;
+    List<String> categories =  cubit.allCategories;
+     List<String> publishers = cubit.allPublishers;
+     List<CoursesModel> courses =cubit.model;
 
     return BlocConsumer<HomeCubit, HomeState>(
-      listener: (context, state) async {},
+      listener: (context, state) async {
+        categories =  cubit.allCategories;
+      publishers = cubit.allPublishers;
+       courses =cubit.model;
+      },
       builder: (context, state) {
         return state is HomeLoading
             ? const Center(child: CircularProgressIndicator())
@@ -198,10 +188,11 @@ class HomeScreen extends StatelessWidget {
                                           child: GestureDetector(
                                               onTap: () {
                                                 Get.to(PopularCourses(
+                                                  isBack: true,
                                                     categories: [cat],
                                                     courses: cubit
                                                         .getCoursesByCategory(
-                                                            cat)));
+                                                            cat), screenName: cat,));
                                               },
                                               child:
                                                   categoryChip(cat, context)),
@@ -222,7 +213,7 @@ class HomeScreen extends StatelessWidget {
                                         onTap: () =>
                                             Get.to(() => PopularCourses(
                                                   categories: categories,
-                                                  courses: [],
+                                                  courses: courses, screenName: "All Courses", isBack: true,
                                                 )),
                                       ),
                                     ],

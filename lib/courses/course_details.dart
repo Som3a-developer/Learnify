@@ -207,12 +207,10 @@ class CourseDetails extends StatelessWidget {
                           : GestureDetector(
                               onTap: () {
                                 cubit.setEnrolled(
+                                  points:course.points! ,
                                     userId: HiveHelper.getToken()!,
                                     courseId: course.courseId ?? 1);
-                                Get.snackbar(
-                                  "Enrolled",
-                                  "You have enrolled in this course",
-                                );
+
                               },
                               child: signButton(h: height, text: "Enroll Now"));
                     },

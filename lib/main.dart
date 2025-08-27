@@ -8,7 +8,10 @@ import 'package:learnify/Helpers/hive_helper.dart';
 import 'package:learnify/auth/cubit/login_cubit.dart';
 import 'package:learnify/Helpers/dio_helper.dart';
 import 'package:learnify/courses/cubit/courses_cubit.dart';
+import 'package:learnify/edit_profile/cubit/profile_cubit.dart';
+import 'package:learnify/edit_profile/edit_profile.dart';
 import 'package:learnify/home/cubit/home_cubit.dart';
+import 'package:learnify/qr_code/qr_exporter.dart';
 import 'package:learnify/splash/splash.dart';
 import 'package:learnify/onCrash.dart';
 import 'package:flutter/material.dart';
@@ -17,35 +20,33 @@ import 'package:hive_flutter/adapters.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
+import 'courses/popular_courses.dart';
+
 Future<void> main() async {
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  await dotenv.load(fileName: "assets/env/.env");
 
-    await dotenv.load(fileName: "assets/env/.env");
+  DioHelper.init();
 
-    DioHelper.init();
+  await Firebase.initializeApp();
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+  );
 
-    await Firebase.initializeApp();
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-    );
+  await Hive.initFlutter();
+  await Hive.openBox(HiveHelper.onboardingBox);
+  await Hive.openBox(HiveHelper.userBox);
+  await Hive.openBox(HiveHelper.coursesBox);
+  await Hive.openBox(HiveHelper.enrolledCoursesBox);
+  await Hive.openBox(HiveHelper.savedCoursesBox);
+  await Hive.openBox(HiveHelper.qrCounterBox);
 
-    await Hive.initFlutter();
-    await Hive.openBox(HiveHelper.onboardingBox);
-    await Hive.openBox(HiveHelper.userBox);
-    await Hive.openBox(HiveHelper.coursesBox);
-    await Hive.openBox(HiveHelper.enrolledCourses);
-    await Hive.openBox(HiveHelper.savedCourses);
-
-    runApp(const MyApp());
-  }, (error, stack) {
-    runApp(const CrashApp());
-  });
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -57,7 +58,17 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => LoginCubit()),
         BlocProvider(create: (_) => HomeCubit()..getData()),
-        BlocProvider(create: (_) => CoursesCubit()),
+        BlocProvider(
+          create: (context) =>
+              CoursesCubit(homeCubit: context.read<HomeCubit>()),
+          child: PopularCourses(
+            categories: [],
+            courses: [],
+            screenName: '',
+            isBack: false,
+          ),
+        ),
+        BlocProvider(create: (_) => ProfileCubit()),
       ],
       child: GetMaterialApp(
         debugShowCheckedModeBanner: false,

@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:bloc/bloc.dart' hide Transition;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:get/get.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:learnify/Helpers/hive_helper.dart';
 import 'package:learnify/firebase/firebase_auth.dart';
@@ -29,13 +30,63 @@ class HomeCubit extends Cubit<HomeState> {
   List<String> allCategories = [];
   List<String> allPublishers = [];
 
+  List<String> specificCourseCategory(List<CoursesModel> coursesList) {
+    return coursesList
+        .map((course) => course.category ?? "")
+        .where((category) => category.isNotEmpty)
+        .toList();
+  }
+
   /// Get courses by category
-  List<CoursesModel> getCoursesByCategory(String category) {
+  List<CoursesModel> getCoursesByCategory(String category,
+      {List<CoursesModel>? courses}) {
     final lowerCategory = category.toLowerCase();
-    return model.where((course) {
+    return (courses ?? model).where((course) {
       final courseCategory = course.category?.toLowerCase() ?? '';
       return courseCategory == lowerCategory;
     }).toList();
+  }
+
+  List<CoursesModel> getEnrolledCourses() {
+    try {
+      final saved = HiveHelper.getEnrolledCourses();
+
+      if (saved == null || saved.isEmpty) {
+        Get.snackbar("Ooops..,", "No Enrolled Courses");
+        return [];
+      }
+
+      final enrolledCourses = model.where((course) {
+        final courseId = course.courseId ?? 0;
+        return saved.contains(courseId);
+      }).toList();
+
+      return enrolledCourses;
+    } catch (e) {
+      Get.snackbar("Ooops..,", "No Enrolled Courses");
+      return [];
+    }
+  }
+
+  List<CoursesModel> getCoursesById() {
+    try {
+      final saved = HiveHelper.getSavedCourses();
+
+      if (saved == null || saved.isEmpty) {
+        Get.snackbar("Ooops..,", "No Enrolled Courses");
+        return [];
+      }
+
+      final savedCourses = model.where((course) {
+        final courseId = course.courseId ?? 0;
+        return saved.contains(courseId);
+      }).toList();
+
+      return savedCourses;
+    } catch (e) {
+      Get.snackbar("Ooops..,", "No Enrolled Courses");
+      return [];
+    }
   }
 
   /// Get courses by publisher
@@ -49,8 +100,9 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> signout() async {
     emit(HomeLoading());
-    await FirebaseAuthHelper().signOutUser();
+    await FirebaseAuthHelper.signOutUser();
     await HiveHelper.setToken(null);
+    HiveHelper.clearEnrolledCourses();
     HiveHelper.clearUser();
     HiveHelper.clearCourses();
     emit(HomeInitial());
@@ -60,6 +112,12 @@ class HomeCubit extends Cubit<HomeState> {
     if (!refresh) {
       emit(HomeLoading());
     }
+    allCategories = HiveHelper.getCategories();
+    allPublishers = HiveHelper.getPublishers();
+    model = (HiveHelper.getCourses() as List)
+        .map((e) => CoursesModel.fromJson(e))
+        .toList();
+
     try {
       final response = await DioHelper.getData(path: "courses");
       model =
@@ -93,7 +151,7 @@ class HomeCubit extends Cubit<HomeState> {
           path: "enrollments",
           queryParameters: {"user_id": "eq.${HiveHelper.getToken()}"}));
       final enrolledData = enrolledResponse.data;
-     await HiveHelper.clearEnrolledCourses();
+      await HiveHelper.clearEnrolledCourses();
       for (int i = 0; i < enrolledData.length; i++) {
         final course = enrolledData[i] as Map<String, dynamic>;
         await HiveHelper.setEnrolledCourses(

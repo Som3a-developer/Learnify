@@ -6,10 +6,12 @@ import 'package:learnify/auth/login_screen.dart';
 import 'package:learnify/firebase/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 part 'login_state.dart';
 
 class LoginCubit extends Cubit<LoginState> {
   LoginCubit() : super(LoginInitial());
+
   // final cardin = {
   //   "email": "youssefemail19@gmail.com",
   //   "password": "123456",
@@ -38,6 +40,7 @@ class LoginCubit extends Cubit<LoginState> {
   Future<void> fillProfile({
     required String name,
     required String phone,
+    required String token,
   }) async {
     emit(LoginLoading());
     // Simulate a profile fill operation
@@ -49,16 +52,10 @@ class LoginCubit extends Cubit<LoginState> {
         phone: phone,
       );
       await HiveHelper.setUser(name: name, phone: phone);
-      DioHelper.postData(path: "users", body: {
-        "user_id": HiveHelper.getToken(),
-        "phone": phone,
-        "user_name": name,
-        "email": HiveHelper.getUserEmail(),
-        "last_login": DateTime.now().toString()
-      });
+      await HiveHelper.setToken(token);
+      emit(LoginInitial());
 
       Get.offAll(() => LoginScreen());
-      emit(LoginInitial());
     } else {
       emit(LoginFailure("Please fill in all fields correctly."));
     }

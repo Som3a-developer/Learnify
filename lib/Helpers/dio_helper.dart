@@ -3,7 +3,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DioHelper {
   static Dio? _dio;
+
   DioHelper._();
+
+  static String prefer = "return=representation";
 
   static void init() {
     if (_dio != null) return;
@@ -17,10 +20,11 @@ class DioHelper {
 
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      receiveTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 15),
       headers: {
         'apikey': apiKey,
         'Authorization': 'Bearer $apiKey',
+        "Prefer": prefer,
       },
     ));
 
@@ -43,8 +47,15 @@ class DioHelper {
     required String path,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? body,
+    String? prefer,
   }) async {
-    return await _dio!.post(path, queryParameters: queryParameters, data: body);
+    if (prefer != null) {
+      DioHelper.prefer = prefer;
+    }
+    final response =
+        await _dio!.post(path, queryParameters: queryParameters, data: body);
+    DioHelper.prefer = "return=representation";
+    return response;
   }
 
   static Future<Response> deleteData({

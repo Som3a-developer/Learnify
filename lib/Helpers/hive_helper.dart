@@ -7,8 +7,9 @@ class HiveHelper {
   static const onboardingBox = "ONBOARDING_BOX";
   static const userBox = "USER_BOX";
   static const coursesBox = "COURSES_BOX";
-  static const enrolledCourses = "ENROLLED_COURSES";
-  static const savedCourses = "SAVED_COURSES";
+  static const enrolledCoursesBox = "ENROLLED_COURSES";
+  static const savedCoursesBox = "SAVED_COURSES";
+  static const qrCounterBox="QR_COUNTER";
 
   /// Sets onboarding completion flag
   static Future<void> setValueInOnboardingBox() async {
@@ -114,14 +115,14 @@ class HiveHelper {
 
       // جلب البيانات وتحويلها لأرقام لو كانت Strings
       List<dynamic> stored =
-          Hive.box(HiveHelper.enrolledCourses).get("enrolledcourses") ?? [];
+          Hive.box(HiveHelper.enrolledCoursesBox).get("enrolledcourses") ?? [];
 
       List<int> enrolledCourses =
           stored.map((e) => e is String ? int.parse(e) : e as int).toList();
 
       enrolledCourses.add(enrolledcourse!);
 
-      await Hive.box(HiveHelper.enrolledCourses).put(
+      await Hive.box(HiveHelper.enrolledCoursesBox).put(
         "enrolledcourses",
         enrolledCourses,
       );
@@ -134,16 +135,25 @@ class HiveHelper {
     try {
       // جلب البيانات وتحويلها لأرقام لو كانت Strings
       List<int> stored =
-          Hive.box(HiveHelper.savedCourses).get("savedcourses") ?? [];
+          Hive.box(HiveHelper.savedCoursesBox).get("savedcourses") ?? [];
 
       stored.add(id);
 
-      await Hive.box(HiveHelper.savedCourses).put(
+      await Hive.box(HiveHelper.savedCoursesBox).put(
         "savedcourses",
         stored,
       );
     } catch (e) {
       throw Exception('Failed to set enrolledCourses: ${e.toString()}');
+    }
+  }
+
+/// Set qrCounter
+    static Future<void> setQrCounter({int? qr})async{
+    try{
+      await Hive.box(HiveHelper.qrCounterBox).put("qr", qr);
+    }catch(e){
+      throw Exception('Failed to set qr: ${e.toString()}');
     }
   }
 
@@ -214,7 +224,7 @@ class HiveHelper {
 
   static List<int>? getEnrolledCourses() {
     try {
-      return Hive.box(enrolledCourses).get("enrolledcourses");
+      return Hive.box(enrolledCoursesBox).get("enrolledcourses");
     } catch (e) {
       return [];
     }
@@ -222,7 +232,7 @@ class HiveHelper {
 
   static List<int>? getSavedCourses() {
     try {
-      return Hive.box(savedCourses).get("savedcourses");
+      return Hive.box(savedCoursesBox).get("savedcourses");
     } catch (e) {
       return [];
     }
@@ -239,13 +249,15 @@ class HiveHelper {
   }
 
   static bool isEnrolled(int? courseid) {
-    final list = Hive.box(enrolledCourses).get("enrolledcourses");
+    final list = Hive.box(enrolledCoursesBox).get("enrolledcourses");
     if (list is List) {
       return list.contains(courseid);
     }
     return false;
   }
-
+static Future<int> getQrCounter()async{
+    return await Hive.box(HiveHelper.qrCounterBox).get("qr")??7;
+}
   /// Clears all user data from local storage
   static void clearUser() {
     try {
@@ -275,7 +287,7 @@ class HiveHelper {
 
   static Future<void> clearEnrolledCourses() async{
     try {
-    await  Hive.box(enrolledCourses).clear();
+    await  Hive.box(enrolledCoursesBox).clear();
     } catch (e) {
       throw Exception('Failed to clear courses: ${e.toString()}');
     }
@@ -285,11 +297,11 @@ class HiveHelper {
     try {
       // جلب البيانات وتحويلها لأرقام لو كانت Strings
       List<int> stored =
-          Hive.box(HiveHelper.savedCourses).get("savedcourses") ?? [];
+          Hive.box(HiveHelper.savedCoursesBox).get("savedcourses") ?? [];
 
       stored.remove(id);
 
-      await Hive.box(HiveHelper.savedCourses).put(
+      await Hive.box(HiveHelper.savedCoursesBox).put(
         "savedcourses",
         stored,
       );

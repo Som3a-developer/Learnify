@@ -32,8 +32,12 @@ class FirebaseAuthHelper {
       Get.snackbar("Email Verification", "Please verify your account.",
           backgroundColor: Colors.green, colorText: Colors.white);
 
-      Get.to(() => FillProfile(),
-          transition: Transition.native, duration: const Duration(seconds: 1));
+      Get.to(
+          () => FillProfile(
+                token: credential.user!.uid,
+              ),
+          transition: Transition.native,
+          duration: const Duration(seconds: 1));
 
       return credential;
     } on FirebaseAuthException catch (e) {
@@ -59,13 +63,17 @@ class FirebaseAuthHelper {
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    await DioHelper.postData(path: "users", body: {
-      "user_name": name,
-      "phone": phone,
-      "user_id": uid,
-      "email": _auth.currentUser!.email,
-      "last_login": DateTime.now().toString()
-    });
+    await DioHelper.postData(
+      path: "users",
+      body: {
+        "user_name": name,
+        "phone": phone,
+        "user_id": uid,
+        "email": _auth.currentUser!.email,
+        "last_login": DateTime.now().toString()
+      },
+      prefer: "resolution=merge-duplicates",
+    );
   }
 
   static Future<void> getUserData() async {
@@ -99,7 +107,6 @@ class FirebaseAuthHelper {
         backgroundColor: Colors.red,
       );
     }
-
   }
 
   static Future<UserCredential> signInUser(
@@ -113,7 +120,10 @@ class FirebaseAuthHelper {
 
         if (firstTime) {
           await HiveHelper.setUser(email: credential.user!.email);
-          Get.offAll(() => FillProfile(),
+          Get.offAll(
+              () => FillProfile(
+                    token: credential.user!.uid,
+                  ),
               transition: Transition.native,
               duration: const Duration(seconds: 1));
         } else {
@@ -158,7 +168,7 @@ class FirebaseAuthHelper {
     }
   }
 
-  Future<void> signOutUser() async {
+  static Future<void> signOutUser() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await FirebaseAuth.instance.signOut();
@@ -201,7 +211,10 @@ class FirebaseAuthHelper {
         if (firstTime) {
           Get.snackbar("Let's get you in", "Fill your profile.",
               backgroundColor: Colors.green, colorText: Colors.white);
-          Get.offAll(() => FillProfile(),
+          Get.offAll(
+              () => FillProfile(
+                    token: HiveHelper.getToken()!,
+                  ),
               transition: Transition.native,
               duration: const Duration(seconds: 1));
         } else {
@@ -233,5 +246,134 @@ class FirebaseAuthHelper {
     Get.snackbar("Error", message,
         backgroundColor: Colors.red, colorText: Colors.white);
     return Future.error(message);
+  }
+
+  static Future<void> deleteAccount({
+    String? email,
+    String? password,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("No user signed in");
+
+    try {
+      final providers = user.providerData.map((p) => p.providerId).toList();
+
+      // ✅ Google re-auth
+      if (providers.contains("google.com")) {
+        final googleUser = await GoogleSignIn().signInSilently();
+        final googleAuth = await googleUser?.authentication;
+        if (googleAuth == null) throw Exception("Google re-auth failed");
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await user.reauthenticateWithCredential(credential);
+      }
+
+      // ✅ Email re-auth
+      if (providers.contains("password")) {
+        if (email == null || password == null) {
+          throw Exception("Email and password required");
+        }
+        final credential = EmailAuthProvider.credential(
+          email: email,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+      }
+
+      final uid = user.uid;
+
+      // ✅ Firestore
+      await _firestore.collection("users").doc(uid).delete();
+
+      // ✅ Supabase (عن طريق DioHelper)
+      await DioHelper.deleteData(
+        path: "users",
+        queryParameters: {"user_id": "eq.$uid"},
+      );
+
+      // لو عندك جداول تانية في Supabase لازم تكرر نفس الخطوة
+      final supabaseTables = {
+        "users": "user_id",
+        "enrollments": "user_id",
+        "courses": "publisher", // غيّر حسب العمود الصحيح
+      };
+      for (final entry in supabaseTables.entries) {
+        await DioHelper.deleteData(
+          path: entry.key,
+          queryParameters: {
+            entry.value: entry.value == "created_by"
+                ? "eq.${HiveHelper.getUserName()}"
+                : "eq.$uid"
+          },
+        );
+      }
+
+      // ✅ FirebaseAuth
+      await user.delete();
+
+      // ✅ Sign out
+      await signOutUser();
+
+      Get.snackbar("Deleted", "Account deleted successfully",
+          backgroundColor: Colors.green, colorText: Colors.white);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') {
+        throw Exception("Wrong password");
+      } else if (e.code == 'requires-recent-login') {
+        throw Exception("Reauthentication required");
+      } else {
+        throw Exception("Auth error: ${e.message}");
+      }
+    } catch (e) {
+      throw Exception("Error deleting account: $e");
+    }
+  }
+
+  // Change password
+  static Future<void> changePassword({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+
+      if (user == null) {
+        Get.snackbar("Error", "No user signed in",
+            backgroundColor: Colors.red, colorText: Colors.white);
+        return;
+      }
+
+      // Re-authenticate
+      final cred = EmailAuthProvider.credential(
+        email: email,
+        password: currentPassword,
+      );
+
+      await user.reauthenticateWithCredential(cred);
+
+      // Update password
+      await user.updatePassword(newPassword);
+
+      Get.snackbar("Success", "Password changed successfully",
+          backgroundColor: Colors.green, colorText: Colors.white);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') {
+        Get.snackbar("Error", "Current password is incorrect",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      } else if (e.code == 'weak-password') {
+        Get.snackbar("Error", "The new password is too weak",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      } else {
+        Get.snackbar("Error", "Password change failed: ${e.message}",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Something went wrong: $e",
+          backgroundColor: Colors.red, colorText: Colors.white);
+    }
   }
 }

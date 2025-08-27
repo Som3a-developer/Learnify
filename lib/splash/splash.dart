@@ -29,7 +29,7 @@ class _SplashState extends State<Splash> {
             if (HiveHelper.getToken() != null) {
               Get.offAll(() => Home());
             } else {
-              Get.offAll(() => FillProfile());
+              Get.offAll(() => FillProfile(token: ""));
             }
           } else {
             Get.offAll(() => SignUpScreen());

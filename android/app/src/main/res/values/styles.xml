@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="default_web_client_id">22079041338-p0j08dcpnr76pp0ogqj90fn74fc02sbn.apps.googleusercontent.com
+</string>
 
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
